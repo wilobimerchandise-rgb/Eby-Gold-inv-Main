@@ -129,3 +129,4 @@ export default function Invoice() {
     </div>
   )
     }
+const LOGO_URL = '/Eby-Gold-inv-Main/logo.png';
