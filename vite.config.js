@@ -3,5 +3,5 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/Eby-Gold-inv-Main/'  // <-- MUST match repo name
+  base: '/Eby-Gold-inv-Main/'  // <-- CRITICAL: must match repo name
 })
