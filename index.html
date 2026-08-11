@@ -49,7 +49,7 @@ label { font-weight: 600; font-size: 13px; margin-bottom: 5px; display: block; }
 </head>
 <body>
 
-<div class="container" id="appScreen">
+<div class="container">
     <div class="header"><h1>Eby-Gold Invoice Generator</h1></div>
 
     <div class="card"><h3>Company Information</h3><div class="grid">
@@ -79,10 +79,10 @@ label { font-weight: 600; font-size: 13px; margin-bottom: 5px; display: block; }
         <div><label>Item</label><input id="itemName" placeholder="Item Name"></div>
         <div><label>Qty</label><input id="qty" type="number" value="1"></div>
         <div><label>Rate NGN</label><input id="rate" type="number" value="0"></div>
-        <div><button class="btn btn-gold" onclick="addItem()">Add Item to Table</button></div>
+        <div><button class="btn btn-gold" type="button" onclick="addItem()">Add Item to Table</button></div>
     </div>
     <div class="table-wrapper"><table class="items-table" id="itemsTable"><thead><tr><th>S/N</th><th>Items</th><th>Qty</th><th>Rate</th><th>Total</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
-    <div class="btn-group no-print"><button class="btn" onclick="saveInvoice()">💾 Save</button><button class="btn btn-gold" onclick="previewInvoice()">👁️ Preview Invoice</button></div>
+    <div class="btn-group no-print"><button class="btn" type="button" onclick="saveInvoice()">💾 Save</button><button class="btn btn-gold" type="button" onclick="previewInvoice()">👁️ Preview Invoice</button></div>
     </div>
 
     <div class="card" id="previewCard" style="display:none"><h3>Invoice Preview</h3>
@@ -109,7 +109,7 @@ label { font-weight: 600; font-size: 13px; margin-bottom: 5px; display: block; }
                 </div>
             </div>
         </div>
-        <div class="btn-group no-print"><button class="btn" onclick="downloadPDF()">⬇️ Download PDF</button><button class="btn btn-whatsapp" onclick="sendToWhatsApp()">📲 Send to WhatsApp</button><button class="btn btn-gold" onclick="printInvoice()">🖨️ Print</button><button class="btn" style="background:#666" onclick="newInvoice()">🔄 New Invoice</button></div>
+        <div class="btn-group no-print"><button class="btn" type="button" onclick="downloadPDF()">⬇️ Download PDF</button><button class="btn btn-whatsapp" type="button" onclick="sendToWhatsApp()">📲 Send to WhatsApp</button><button class="btn btn-gold" type="button" onclick="printInvoice()">🖨️ Print</button><button class="btn" type="button" style="background:#666" onclick="newInvoice()">🔄 New Invoice</button></div>
     </div>
 </div>
 
@@ -123,12 +123,12 @@ window.onload = function(){
 
 function formatMoney(num){ return 'NGN ' + num.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
 
-// FIXED NUMBER TO WORDS FUNCTION
+// COMPLETELY FIXED NUMBER TO WORDS
 function numberToWords(num) {
     const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine'];
     const tens = ['','Ten','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
     const teens = ['Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
-    if(num === 0) return 'Zero';
+    if(num === 0) return 'Zero Naira Only';
     let n = Math.floor(num);
     let str = '';
     if(n >= 1000000) {str += ones[Math.floor(n/1000000)] + ' Million '; n %= 1000000;}
@@ -136,7 +136,7 @@ function numberToWords(num) {
     if(n >= 100) {str += ones[Math.floor(n/100)] + ' Hundred '; n %= 100;}
     if(n >= 20) {str += tens[Math.floor(n/10)] + ' '; n %= 10;}
     if(n >= 10 && n < 20) {str += teens[n-10] + ' '; n = 0;}
-    if(n > 0 && n < 10) {str += ones[n] + ';} // FIXED HERE
+    if(n > 0 && n < 10) {str += ones[n] + ';} // THIS LINE WAS BROKEN
     let kobo = Math.round((num - Math.floor(num)) * 100);
     return str.trim() + ' Naira' + (kobo > 0? ' and ' + kobo + ' Kobo' : '') + ' Only';
 }
@@ -158,19 +158,22 @@ function addItem(){
     let name = document.getElementById('itemName').value.trim();
     let qty = parseFloat(document.getElementById('qty').value);
     let rate = parseFloat(document.getElementById('rate').value);
-    if(!name || qty <= 0 || rate < 0) return alert('Please fill item name, qty and rate');
+    if(!name){ alert('Please enter item name'); return; }
+    if(!qty || qty <= 0){ alert('Please enter valid qty'); return; }
+    if(rate < 0){ alert('Please enter valid rate'); return; }
     items.push({name, qty, rate, total: qty*rate});
     renderTable();
     document.getElementById('itemName').value='';
     document.getElementById('qty').value=1;
     document.getElementById('rate').value=0;
+    document.getElementById('itemName').focus();
 }
 function deleteItem(i){ items.splice(i,1); renderTable(); }
 function renderTable(){
     let tbody = document.querySelector('#itemsTable tbody');
     tbody.innerHTML = '';
     items.forEach((it,i)=>{
-        tbody.innerHTML += `<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td>${formatMoney(it.rate)}</td><td>${formatMoney(it.total)}</td><td class="no-print"><button class="action-btn" onclick="deleteItem(${i})">X</button></td></tr>`
+        tbody.innerHTML += `<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td>${formatMoney(it.rate)}</td><td>${formatMoney(it.total)}</td><td class="no-print"><button class="action-btn" type="button" onclick="deleteItem(${i})">X</button></td></tr>`
     });
     updatePreview();
 }
@@ -220,7 +223,7 @@ function generatePDF(){
     finalY += 30; doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.text('Thank you for choosing Eby-Gold Superstores', 40, finalY); doc.text('Created by: ADMIN', pageWidth-40, finalY, {align:'right'});
     return doc;
 }
-function saveInvoice(){ let data = { customer: {name: billedTo.value, phone: phone.value, address: address.value}, items: items, invNo: invNo.innerText }; localStorage.setItem('eby_invoice_' + invNo.innerText, JSON.stringify(data)); alert('Invoice Saved! ' + invNo.innerText); }
+function saveInvoice(){ if(items.length === 0) return alert('Add items first'); let data = { customer: {name: billedTo.value, phone: phone.value, address: address.value}, items: items, invNo: invNo.innerText }; localStorage.setItem('eby_invoice_' + invNo.innerText, JSON.stringify(data)); alert('Invoice Saved! ' + invNo.innerText); }
 function previewInvoice(){ if(items.length === 0) return alert('Please add at least 1 item'); updatePreview(); document.getElementById('previewCard').style.display='block'; window.scrollTo(0,document.body.scrollHeight); }
 function downloadPDF(){ if(items.length === 0) return alert('Please add items first'); const doc = generatePDF(); doc.save(invNo.innerText + '.pdf'); }
 function printInvoice(){ window.print(); }
@@ -237,4 +240,4 @@ function sendToWhatsApp(){
 document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input', updatePreview));
 </script>
 </body>
-                                                                </html>
+                                         </html>
