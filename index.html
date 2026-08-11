@@ -1,13 +1,152 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EBY-GOLD SUPERSTORES - INVOICE</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="bg-gray-100">
-    <div id="root"></div>
-    <script type="module" src="/Eby-Gold-inv-Main/src/main.jsx"></script>
-  </body>
-</html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eby-Gold Superstores | Invoice App</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root { --primary: #0a2540; --gold: #d4af37; --bg: #f4f7fa; --card: #ffffff; --text: #1a202c; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+body { background: var(--bg); color: var(--text); }
+.login-wrap { display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
+.login-card { background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+.login-card img { width: 110px; margin-bottom: 15px; border-radius: 16px; }
+.btn { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; margin-top: 10px; }
+.btn:hover { background: #12395e; }
+.btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
+.btn-gold { background: var(--gold); color: var(--primary); }
+.btn-whatsapp { background: #25D366; color: white; }
+.container { max-width: 1000px; margin: 0 auto; padding: 20px; display: none; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+.header h1 { color: var(--primary); }
+.card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }
+label { font-weight: 600; font-size: 13px; margin-bottom: 5px; display: block; }
+.table-wrapper { width: 100%; overflow-x: auto; }
+.items-table { width: 100%; min-width: 550px; border-collapse: collapse; margin: 20px 0; border: 2px solid var(--primary); }
+.items-table th,.items-table td { border: 1px solid var(--primary); padding: 10px; text-align: left; font-size: 12px; }
+.items-table th { background: var(--primary); color: white; font-weight: 700; }
+.items-table tr:nth-child(even) { background: #f8fafc; }
+.action-btn { color: red; cursor: pointer; border: none; background: none; font-size: 16px; font-weight: bold; }
+.invoice { background: white; padding: 30px; position: relative; min-height: 1100px; border: 1px solid #ddd; width: 100%; }
+.invoice-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+.logo-box { width: 130px; height: 130px; border: 2px dashed var(--primary); display: flex; align-items: center; justify-content: center; border-radius: 16px; overflow: hidden; background: #fff; cursor: pointer; }
+.logo-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 14px; }
+.company-name { font-size: 22px; font-weight: 900; color: var(--primary); letter-spacing: 1px; }
+.company-info { font-size: 11px; color: #444; line-height: 1.5; }
+.status-badge { background: #fef3c7; color: #92400e; padding: 6px 12px; border-radius: 20px; font-weight: 600; }
+.watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); opacity: 0.08; width: 500px; z-index: 0; pointer-events: none; border-radius: 20px; }
+.invoice-content { position: relative; z-index: 1; }
+#totals { margin-top: 15px; }
+.payment-box { border: 1px solid var(--primary); width: 300px; margin-top: 20px; }
+.payment-box h4 { background: var(--primary); color: white; padding: 8px; font-size: 12px; }
+.payment-box table { width: 100%; font-size: 11px; }
+.payment-box td { padding: 6px; border-bottom: 1px solid #ddd; }
+.amount-words { margin-top: 15px; font-size: 11px; font-style: italic; }
+@media print { body * { visibility: hidden; }.invoice,.invoice * { visibility: visible; }.invoice { position: absolute; left: 0; top: 0; width: 100%; border: none; padding: 30px; }.action-btn,.no-print { display: none!important; } }
+@media (max-width: 600px) {.invoice-header { flex-direction: column; align-items: center; text-align: center; }.btn-group { flex-direction: column; }.payment-box { width: 100%; } }
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="loginScreen">
+    <div class="login-card">
+        <img id="loginLogo" src="" alt="Eby-Gold">
+        <h2 style="color:var(--primary); font-weight:900">EBY-GOLD SUPERSTORES</h2>
+        <p>Enter any username to continue</p>
+        <input type="text" id="username" placeholder="Enter Username">
+        <button class="btn" onclick="login()">Login</button>
+    </div>
+</div>
+
+<div class="container" id="appScreen">
+    <div class="header"><h1>Invoice Generator</h1><button class="btn" style="width:auto" onclick="logout()">Logout</button></div>
+
+    <div class="card"><h3>Company Information</h3><div class="grid">
+        <div><label>Address</label><input id="compAddress" value="19, Jejelaye Street, Surulere, Lagos."></div>
+        <div><label>Tel</label><input id="compTel" value="07058016395"></div>
+        <div><label>Email</label><input id="compEmail" value="eberechukwukaosa5@gmail.com"></div>
+    </div></div>
+
+    <div class="card"><h3>Customer Details</h3><div class="grid">
+        <div><label>Billed To</label><input id="billedTo" placeholder="Customer Name"></div>
+        <div><label>Phone</label><input id="phone" placeholder="080xxxxxxxx"></div>
+        <div style="grid-column:1/-1"><label>Address</label><input id="address" placeholder="Customer Address"></div>
+    </div></div>
+
+    <div class="card"><h3>Payment Information</h3><div class="grid">
+        <div><label>Bank</label><input id="bank" value="UBA"></div>
+        <div><label>Account No</label><input id="accNo" value="2189015307"></div>
+        <div><label>Account Name</label><input id="accName" value="Ebere Favour Akabissa"></div>
+    </div></div>
+
+    <div class="card"><h3>Invoice Details</h3><div class="grid">
+        <div><label>Document Type</label><select id="docType"><option>Sales Invoice</option><option>Receipt</option><option>Quotation</option></select></div>
+        <div><label><input type="checkbox" id="vat"> Add 7.5% VAT</label></div>
+    </div></div>
+
+    <div class="card"><h3>Add Items</h3><div class="grid">
+        <div><label>Item</label><input id="itemName" placeholder="Item Name"></div>
+        <div><label>Qty</label><input id="qty" type="number" value="1"></div>
+        <div><label>Rate NGN</label><input id="rate" type="number" value="0"></div>
+        <div><button class="btn btn-gold" onclick="addItem()">Add Item to Table</button></div>
+    </div>
+    <div class="table-wrapper"><table class="items-table" id="itemsTable"><thead><tr><th>S/N</th><th>Items</th><th>Qty</th><th>Rate</th><th>Total</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
+    <div class="btn-group no-print"><button class="btn" onclick="saveInvoice()">💾 Save</button><button class="btn btn-gold" onclick="previewInvoice()">👁️ Preview Invoice</button></div>
+    </div>
+
+    <div class="card" id="previewCard" style="display:none"><h3>Invoice Preview</h3>
+        <div class="invoice" id="invoice"><img src="" class="watermark" id="watermarkImg">
+            <div class="invoice-content">
+                <div class="invoice-header"><div>
+                    <div class="logo-box" onclick="uploadLogo()"><span id="logoText" style="font-size:10px; text-align:center">+ Click<br>Upload Logo</span><img id="logoPreview" style="display:none"></div>
+                    <h2 class="company-name">EBY-GOLD SUPERSTORES</h2>
+                    <div class="company-info"><p id="previewCompAddress"></p><p>Tel: <span id="previewCompTel"></span></p><p>Email: <span id="previewCompEmail"></span></p></div>
+                </div><div style="text-align:right"><div class="status-badge">UNPAID</div><p><b>DOCUMENT NO:</b> <span id="invNo"></span></p><p><b>DATE:</b> <span id="invDate"></span></p></div></div>
+                <hr style="margin:15px 0; border:1px solid var(--primary)">
+                <p><b>BILLED TO:</b><br><span id="previewName"></span><br><span id="previewPhone"></span><br><span id="previewAddress"></span></p>
+                <div id="invoiceTable"></div>
+                <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:20px">
+                    <div class="payment-box"><h4>PAYMENT INFORMATION</h4><table>
+                        <tr><td><b>Bank</b></td><td id="previewBank"></td></tr>
+                        <tr><td><b>Account No</b></td><td id="previewAccNo"></td></tr>
+                        <tr><td><b>Account Name</b></td><td id="previewAccName"></td></tr>
+                    </table></div><div id="totals" style="text-align:right"></div>
+                </div>
+                <p class="amount-words" id="amountWords"></p>
+                <div style="display:flex; justify-content:space-between; margin-top:40px; font-size:11px; color:#666">
+                    <p>Thank you for choosing Eby-Gold Superstores</p><p><b>Created by: ADMIN</b></p>
+                </div>
+            </div>
+        </div>
+        <div class="btn-group no-print"><button class="btn" onclick="downloadPDF()">⬇️ Download PDF</button><button class="btn btn-whatsapp" onclick="sendToWhatsApp()">📲 Send to WhatsApp</button><button class="btn btn-gold" onclick="printInvoice()">🖨️ Print</button></div>
+    </div>
+</div>
+
+<script>
+let items = []; const { jsPDF } = window.jspdf;
+function formatMoney(num){ return 'NGN ' + num.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+function numberToWords(num) { const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine']; const tens = ['','Ten','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety']; const teens = ['Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen']; if(num === 0) return 'Zero'; let n = Math.floor(num); let str = ''; if(n >= 1000000) {str += ones[Math.floor(n/1000000)] + ' Million '; n %= 1000000;} if(n >= 1000) {str += ones[Math.floor(n/1000)] + ' Thousand '; n %= 1000;} if(n >= 100) {str += ones[Math.floor(n/100)] + ' Hundred '; n %= 100;} if(n >= 20) {str += tens[Math.floor(n/10)] + ' '; n %= 10;} if(n >= 10 && n < 20) {str += teens[n-10] + ' '; n = 0;} if(n > 0 && n < 10) {str += ones[n] + ';} let kobo = Math.round((num - Math.floor(num)) * 100); return str.trim() + ' Naira' + (kobo > 0? ' and ' + kobo + ' Kobo' : '') + ' Only'; }
+function login(){ if(document.getElementById('username').value.trim() === '') return alert('Enter username'); localStorage.setItem('eby_user', document.getElementById('username').value); document.getElementById('loginScreen').style.display='none'; document.getElementById('appScreen').style.display='block'; generateInvNo(); loadLogo(); }
+function logout(){ localStorage.removeItem('eby_user'); location.reload(); }
+if(localStorage.getItem('eby_user')){ document.getElementById('username').value = localStorage.getItem('eby_user'); login(); }
+function loadLogo(){ let logo = localStorage.getItem('eby_logo'); if(logo){ document.getElementById('loginLogo').src = logo; document.getElementById('logoPreview').src = logo; document.getElementById('logoPreview').style.display='block'; document.getElementById('logoText').style.display='none'; document.getElementById('watermarkImg').src = logo; } }
+function uploadLogo(){ let input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { let reader = new FileReader(); reader.onload = () => { let src = reader.result; localStorage.setItem('eby_logo', src); loadLogo(); } reader.readAsDataURL(e.target.files[0]); } input.click(); }
+function generateInvNo(){ let no = '#EGS-INV-' + Math.floor(100000 + Math.random() * 900000); document.getElementById('invNo').innerText = no; document.getElementById('invDate').innerText = new Date().toLocaleDateString('en-GB'); }
+function addItem(){ let name = document.getElementById('itemName').value; let qty = parseFloat(document.getElementById('qty').value); let rate = parseFloat(document.getElementById('rate').value); if(!name || qty <= 0 || rate < 0) return alert('Fill item details'); items.push({name, qty, rate, total: qty*rate}); renderTable(); document.getElementById('itemName').value=''; document.getElementById('qty').value=1; document.getElementById('rate').value=0; }
+function deleteItem(i){ items.splice(i,1); renderTable(); }
+function renderTable(){ let tbody = document.querySelector('#itemsTable tbody'); tbody.innerHTML = ''; items.forEach((it,i)=>{ tbody.innerHTML += `<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td>${formatMoney(it.rate)}</td><td>${formatMoney(it.total)}</td><td class="no-print"><button class="action-btn" onclick="deleteItem(${i})">X</button></td></tr>` }); updatePreview(); }
+function updatePreview(){ document.getElementById('previewCompAddress').innerText = document.getElementById('compAddress').value; document.getElementById('previewCompTel').innerText = document.getElementById('compTel').value; document.getElementById('previewCompEmail').innerText = document.getElementById('compEmail').value; document.getElementById('previewName').innerText = document.getElementById('billedTo').value; document.getElementById('previewPhone').innerText = document.getElementById('phone').value; document.getElementById('previewAddress').innerText = document.getElementById('address').value; document.getElementById('previewBank').innerText = document.getElementById('bank').value; document.getElementById('previewAccNo').innerText = document.getElementById('accNo').value; document.getElementById('previewAccName').innerText = document.getElementById('accName').value; let tableHTML = '<table class="items-table"><thead><tr><th>S/N</th><th>Items</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead><tbody>'; items.forEach((it,i)=>{ tableHTML += `<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td>${formatMoney(it.rate)}</td><td>${formatMoney(it.total)}</td></tr>` }); tableHTML += '</tbody></table>'; document.getElementById('invoiceTable').innerHTML = `<div class="table-wrapper">${tableHTML}</div>`; let subtotal = items.reduce((a,b)=>a+b.total,0); let vat = document.getElementById('vat').checked? subtotal*0.075 : 0; let total = subtotal + vat; document.getElementById('totals').innerHTML = `<table style="border:1px solid var(--primary); font-size:11px"><tr><td style="padding:8px"><b>Subtotal</b></td><td style="padding:8px">${formatMoney(subtotal)}</td></tr><tr><td style="padding:8px; background:var(--primary); color:white"><b>Total</b></td><td style="padding:8px; background:var(--primary); color:white"><b>${formatMoney(total)}</b></td></tr></table>`; document.getElementById('amountWords').innerText = 'Amount in Words: ' + numberToWords(total); }
+function generatePDF(){ const doc = new jsPDF('p','pt','a4'); const pageWidth = doc.internal.pageSize.getWidth(); doc.setFont('helvetica'); doc.setFontSize(18); doc.setFont(undefined, 'bold'); doc.text('EBY-GOLD SUPERSTORES', 40, 50); doc.setFontSize(9); doc.text(document.getElementById('compAddress').value, 40, 65); doc.text('Tel: ' + document.getElementById('compTel').value, 40, 77); doc.text('Email: ' + document.getElementById('compEmail').value, 40, 89); doc.setFontSize(10); doc.text(document.getElementById('docType').value.toUpperCase(), pageWidth-40, 50, {align: 'right'}); doc.text('DOCUMENT NO: ' + document.getElementById('invNo').innerText, pageWidth-40, 65, {align: 'right'}); doc.text('DATE: ' + document.getElementById('invDate').innerText, pageWidth-40, 77, {align: 'right'}); doc.setLineWidth(1.5); doc.line(40, 100, pageWidth-40, 100); doc.setFontSize(11); doc.setFont(undefined, 'bold'); doc.text('BILLED TO:', 40, 120); doc.setFont(undefined, 'normal'); doc.text(document.getElementById('billedTo').value, 40, 135); doc.text(document.getElementById('phone').value, 40, 147); doc.text(document.getElementById('address').value, 40, 159); let tableData = items.map((it,i)=>[ (i+1).toString(), it.name, it.qty.toLocaleString(), formatMoney(it.rate), formatMoney(it.total) ]); let subtotal = items.reduce((a,b)=>a+b.total,0); let vat = document.getElementById('vat').checked? subtotal*0.075 : 0; let total = subtotal + vat; doc.autoTable({ startY: 180, head: [['S/N', 'Items', 'Qty', 'Rate', 'Total']], body: tableData, theme: 'grid', styles: { font: 'helvetica', fontSize: 9, cellPadding: 5 }, headStyles: { fillColor: [10,37,64], textColor: 255, fontStyle: 'bold' }, columnStyles: { 0: {cellWidth: 35}, 1: {cellWidth: 160}, 2: {cellWidth: 60}, 3: {cellWidth: 110}, 4: {cellWidth: 120} } }); let finalY = doc.lastAutoTable.finalY + 15; doc.setFillColor(10,37,64); doc.rect(40, finalY, 200, 15, 'F'); doc.setTextColor(255); doc.setFontSize(10); doc.text('PAYMENT INFORMATION', 45, finalY+10); doc.setTextColor(0); doc.rect(40, finalY+15, 200, 45); doc.setFontSize(9); doc.text('Bank', 45, finalY+28); doc.text(document.getElementById('bank').value, 120, finalY+28); doc.text('Account No', 45, finalY+40); doc.text(document.getElementById('accNo').value, 120, finalY+40); doc.text('Account Name', 45, finalY+52); doc.text(document.getElementById('accName').value, 120, finalY+52); doc.setFontSize(10); doc.text('Subtotal', pageWidth-150, finalY+10); doc.text(formatMoney(subtotal), pageWidth-40, finalY+10, {align:'right'}); doc.setFillColor(10,37,64); doc.rect(pageWidth-150, finalY+15, 110, 15, 'F'); doc.setTextColor(255); doc.text('Total', pageWidth-150, finalY+26); doc.text(formatMoney(total), pageWidth-40, finalY+26, {align:'right'}); doc.setTextColor(0); finalY += 70; doc.setFontSize(9); doc.setFont(undefined, 'italic'); doc.text('Amount in Words: ' + numberToWords(total), 40, finalY); finalY += 30; doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.text('Thank you for choosing Eby-Gold Superstores', 40, finalY); doc.text('Created by: ADMIN', pageWidth-40, finalY, {align:'right'}); return doc; }
+function saveInvoice(){ let data = { customer: {name: billedTo.value, phone: phone.value, address: address.value}, items: items, invNo: invNo.innerText }; localStorage.setItem('eby_invoice_' + invNo.innerText, JSON.stringify(data)); alert('Invoice Saved! ' + invNo.innerText); }
+function previewInvoice(){ updatePreview(); document.getElementById('previewCard').style.display='block'; }
+function downloadPDF(){ const doc = generatePDF(); doc.save(invNo.innerText + '.pdf'); }
+function printInvoice(){ window.print(); }
+function sendToWhatsApp(){ let custPhone = document.getElementById('phone').value.replace(/\D/g,''); if(custPhone.length < 10){ alert('Please enter a valid customer phone number first.'); return; } if(!custPhone.startsWith('234')) custPhone = '234' + custPhone.slice(1); const doc = generatePDF(); const pdfBlob = doc.output('blob'); const pdfUrl = URL.createObjectURL(pdfBlob); const a = document.createElement('a'); a.href = pdfUrl; a.download = invNo.innerText + '.pdf'; document.body.appendChild(a); a.click(); document.body.removeChild(a); let msg = `Hello ${document.getElementById('billedTo').value}, \n\nPlease find your invoice ${invNo.innerText} attached from *EBY-GOLD SUPERSTORES*. \n\nThank you for your business!`; window.open(`https://wa.me/${custPhone}?text=${encodeURIComponent(msg)}`, '_blank'); alert('1. PDF Downloaded \n2. WhatsApp Opened \n\nAttach the PDF to send.'); }
+document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input', updatePreview));
+</script>
+</body>
+  </html>
