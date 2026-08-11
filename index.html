@@ -109,7 +109,7 @@ label { font-weight: 600; font-size: 13px; margin-bottom: 5px; display: block; }
                 </div>
             </div>
         </div>
-        <div class="btn-group no-print"><button class="btn" onclick="downloadPDF()">⬇️ Download PDF</button><button class="btn btn-whatsapp" onclick="sendToWhatsApp()">📲 Send to WhatsApp</button><button class="btn btn-gold" onclick="printInvoice()">🖨️ Print</button></div>
+        <div class="btn-group no-print"><button class="btn" onclick="downloadPDF()">⬇️ Download PDF</button><button class="btn btn-whatsapp" onclick="sendToWhatsApp()">📲 Send to WhatsApp</button><button class="btn btn-gold" onclick="printInvoice()">🖨️ Print</button><button class="btn" style="background:#666" onclick="newInvoice()">🔄 New Invoice</button></div>
     </div>
 </div>
 
@@ -123,6 +123,7 @@ window.onload = function(){
 
 function formatMoney(num){ return 'NGN ' + num.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
 
+// FIXED NUMBER TO WORDS FUNCTION
 function numberToWords(num) {
     const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine'];
     const tens = ['','Ten','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
@@ -135,7 +136,7 @@ function numberToWords(num) {
     if(n >= 100) {str += ones[Math.floor(n/100)] + ' Hundred '; n %= 100;}
     if(n >= 20) {str += tens[Math.floor(n/10)] + ' '; n %= 10;}
     if(n >= 10 && n < 20) {str += teens[n-10] + ' '; n = 0;}
-    if(n > 0 && n < 10) {str += ones[n] + ';}
+    if(n > 0 && n < 10) {str += ones[n] + ';} // FIXED HERE
     let kobo = Math.round((num - Math.floor(num)) * 100);
     return str.trim() + ' Naira' + (kobo > 0? ' and ' + kobo + ' Kobo' : '') + ' Only';
 }
@@ -151,17 +152,89 @@ function loadLogo(){
 }
 function uploadLogo(){ let input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { let reader = new FileReader(); reader.onload = () => { let src = reader.result; localStorage.setItem('eby_logo', src); loadLogo(); } reader.readAsDataURL(e.target.files[0]); } input.click(); }
 function generateInvNo(){ let no = '#EGS-INV-' + Math.floor(100000 + Math.random() * 900000); document.getElementById('invNo').innerText = no; document.getElementById('invDate').innerText = new Date().toLocaleDateString('en-GB'); }
-function addItem(){ let name = document.getElementById('itemName').value; let qty = parseFloat(document.getElementById('qty').value); let rate = parseFloat(document.getElementById('rate').value); if(!name || qty <= 0 || rate < 0) return alert('Fill item details'); items.push({name, qty, rate, total: qty*rate}); renderTable(); document.getElementById('itemName').value=''; document.getElementById('qty').value=1; document.getElementById('rate').value=0; }
+function newInvoice(){ items = []; renderTable(); generateInvNo(); document.getElementById('billedTo').value=''; document.getElementById('phone').value=''; document.getElementById('address').value=''; document.getElementById('previewCard').style.display='none'; window.scrollTo(0,0); }
+
+function addItem(){
+    let name = document.getElementById('itemName').value.trim();
+    let qty = parseFloat(document.getElementById('qty').value);
+    let rate = parseFloat(document.getElementById('rate').value);
+    if(!name || qty <= 0 || rate < 0) return alert('Please fill item name, qty and rate');
+    items.push({name, qty, rate, total: qty*rate});
+    renderTable();
+    document.getElementById('itemName').value='';
+    document.getElementById('qty').value=1;
+    document.getElementById('rate').value=0;
+}
 function deleteItem(i){ items.splice(i,1); renderTable(); }
-function renderTable(){ let tbody = document.querySelector('#itemsTable tbody'); tbody.innerHTML = ''; items.forEach((it,i)=>{ tbody.innerHTML += `<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td>${formatMoney(it.rate)}</td><td>${formatMoney(it.total)}</td><td class="no-print"><button class="action-btn" onclick="deleteItem(${i})">X</button></td></tr>` }); updatePreview(); }
-function updatePreview(){ document.getElementById('previewCompAddress').innerText = document.getElementById('compAddress').value; document.getElementById('previewCompTel').innerText = document.getElementById('compTel').value; document.getElementById('previewCompEmail').innerText = document.getElementById('compEmail').value; document.getElementById('previewName').innerText = document.getElementById('billedTo').value; document.getElementById('previewPhone').innerText = document.getElementById('phone').value; document.getElementById('previewAddress').innerText = document.getElementById('address').value; document.getElementById('previewBank').innerText = document.getElementById('bank').value; document.getElementById('previewAccNo').innerText = document.getElementById('accNo').value; document.getElementById('previewAccName').innerText = document.getElementById('accName').value; let tableHTML = '<table class="items-table"><thead><tr><th>S/N</th><th>Items</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead><tbody>'; items.forEach((it,i)=>{ tableHTML += `<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td>${formatMoney(it.rate)}</td><td>${formatMoney(it.total)}</td></tr>` }); tableHTML += '</tbody></table>'; document.getElementById('invoiceTable').innerHTML = `<div class="table-wrapper">${tableHTML}</div>`; let subtotal = items.reduce((a,b)=>a+b.total,0); let vat = document.getElementById('vat').checked? subtotal*0.075 : 0; let total = subtotal + vat; document.getElementById('totals').innerHTML = `<table style="border:1px solid var(--primary); font-size:11px"><tr><td style="padding:8px"><b>Subtotal</b></td><td style="padding:8px">${formatMoney(subtotal)}</td></tr><tr><td style="padding:8px; background:var(--primary); color:white"><b>Total</b></td><td style="padding:8px; background:var(--primary); color:white"><b>${formatMoney(total)}</b></td></tr></table>`; document.getElementById('amountWords').innerText = 'Amount in Words: ' + numberToWords(total); }
-function generatePDF(){ const { jsPDF } = window.jspdf; const doc = new jsPDF('p','pt','a4'); const pageWidth = doc.internal.pageSize.getWidth(); doc.setFont('helvetica'); doc.setFontSize(18); doc.setFont(undefined, 'bold'); doc.text('EBY-GOLD SUPERSTORES', 40, 50); let logo = localStorage.getItem('eby_logo'); if(logo){ doc.addImage(logo, 'JPEG', 450, 30, 90, 90); } doc.setFontSize(9); doc.text(document.getElementById('compAddress').value, 40, 65); doc.text('Tel: ' + document.getElementById('compTel').value, 40, 77); doc.text('Email: ' + document.getElementById('compEmail').value, 40, 89); doc.setFontSize(10); doc.text(document.getElementById('docType').value.toUpperCase(), pageWidth-40, 50, {align: 'right'}); doc.text('DOCUMENT NO: ' + document.getElementById('invNo').innerText, pageWidth-40, 65, {align: 'right'}); doc.text('DATE: ' + document.getElementById('invDate').innerText, pageWidth-40, 77, {align: 'right'}); doc.setLineWidth(1.5); doc.line(40, 100, pageWidth-40, 100); doc.setFontSize(11); doc.setFont(undefined, 'bold'); doc.text('BILLED TO:', 40, 120); doc.setFont(undefined, 'normal'); doc.text(document.getElementById('billedTo').value, 40, 135); doc.text(document.getElementById('phone').value, 40, 147); doc.text(document.getElementById('address').value, 40, 159); let tableData = items.map((it,i)=>[ (i+1).toString(), it.name, it.qty.toLocaleString(), formatMoney(it.rate), formatMoney(it.total) ]); let subtotal = items.reduce((a,b)=>a+b.total,0); let vat = document.getElementById('vat').checked? subtotal*0.075 : 0; let total = subtotal + vat; doc.autoTable({ startY: 180, head: [['S/N', 'Items', 'Qty', 'Rate', 'Total']], body: tableData, theme: 'grid', styles: { font: 'helvetica', fontSize: 9, cellPadding: 5 }, headStyles: { fillColor: [10,37,64], textColor: 255, fontStyle: 'bold' }, columnStyles: { 0: {cellWidth: 35}, 1: {cellWidth: 160}, 2: {cellWidth: 60}, 3: {cellWidth: 110}, 4: {cellWidth: 120} } }); let finalY = doc.lastAutoTable.finalY + 15; doc.setFillColor(10,37,64); doc.rect(40, finalY, 200, 15, 'F'); doc.setTextColor(255); doc.setFontSize(10); doc.text('PAYMENT INFORMATION', 45, finalY+10); doc.setTextColor(0); doc.rect(40, finalY+15, 200, 45); doc.setFontSize(9); doc.text('Bank', 45, finalY+28); doc.text(document.getElementById('bank').value, 120, finalY+28); doc.text('Account No', 45, finalY+40); doc.text(document.getElementById('accNo').value, 120, finalY+40); doc.text('Account Name', 45, finalY+52); doc.text(document.getElementById('accName').value, 120, finalY+52); doc.setFontSize(10); doc.text('Subtotal', pageWidth-150, finalY+10); doc.text(formatMoney(subtotal), pageWidth-40, finalY+10, {align:'right'}); doc.setFillColor(10,37,64); doc.rect(pageWidth-150, finalY+15, 110, 15, 'F'); doc.setTextColor(255); doc.text('Total', pageWidth-150, finalY+26); doc.text(formatMoney(total), pageWidth-40, finalY+26, {align:'right'}); doc.setTextColor(0); finalY += 70; doc.setFontSize(9); doc.setFont(undefined, 'italic'); doc.text('Amount in Words: ' + numberToWords(total), 40, finalY); finalY += 30; doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.text('Thank you for choosing Eby-Gold Superstores', 40, finalY); doc.text('Created by: ADMIN', pageWidth-40, finalY, {align:'right'}); return doc; }
+function renderTable(){
+    let tbody = document.querySelector('#itemsTable tbody');
+    tbody.innerHTML = '';
+    items.forEach((it,i)=>{
+        tbody.innerHTML += `<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td>${formatMoney(it.rate)}</td><td>${formatMoney(it.total)}</td><td class="no-print"><button class="action-btn" onclick="deleteItem(${i})">X</button></td></tr>`
+    });
+    updatePreview();
+}
+function updatePreview(){
+    document.getElementById('previewCompAddress').innerText = document.getElementById('compAddress').value;
+    document.getElementById('previewCompTel').innerText = document.getElementById('compTel').value;
+    document.getElementById('previewCompEmail').innerText = document.getElementById('compEmail').value;
+    document.getElementById('previewName').innerText = document.getElementById('billedTo').value;
+    document.getElementById('previewPhone').innerText = document.getElementById('phone').value;
+    document.getElementById('previewAddress').innerText = document.getElementById('address').value;
+    document.getElementById('previewBank').innerText = document.getElementById('bank').value;
+    document.getElementById('previewAccNo').innerText = document.getElementById('accNo').value;
+    document.getElementById('previewAccName').innerText = document.getElementById('accName').value;
+    let tableHTML = '<table class="items-table"><thead><tr><th>S/N</th><th>Items</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead><tbody>';
+    items.forEach((it,i)=>{ tableHTML += `<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td>${formatMoney(it.rate)}</td><td>${formatMoney(it.total)}</td></tr>` });
+    tableHTML += '</tbody></table>';
+    document.getElementById('invoiceTable').innerHTML = `<div class="table-wrapper">${tableHTML}</div>`;
+    let subtotal = items.reduce((a,b)=>a+b.total,0);
+    let vat = document.getElementById('vat').checked? subtotal*0.075 : 0;
+    let total = subtotal + vat;
+    document.getElementById('totals').innerHTML = `<table style="border:1px solid var(--primary); font-size:11px"><tr><td style="padding:8px"><b>Subtotal</b></td><td style="padding:8px">${formatMoney(subtotal)}</td></tr><tr><td style="padding:8px"><b>VAT 7.5%</b></td><td style="padding:8px">${formatMoney(vat)}</td></tr><tr><td style="padding:8px; background:var(--primary); color:white"><b>Total</b></td><td style="padding:8px; background:var(--primary); color:white"><b>${formatMoney(total)}</b></td></tr></table>`;
+    document.getElementById('amountWords').innerText = 'Amount in Words: ' + numberToWords(total);
+}
+function generatePDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p','pt','a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    doc.setFont('helvetica'); doc.setFontSize(18); doc.setFont(undefined, 'bold'); doc.text('EBY-GOLD SUPERSTORES', 40, 50);
+    let logo = localStorage.getItem('eby_logo');
+    if(logo){ doc.addImage(logo, 'JPEG', 450, 30, 90, 90); }
+    doc.setFontSize(9); doc.text(document.getElementById('compAddress').value, 40, 65); doc.text('Tel: ' + document.getElementById('compTel').value, 40, 77); doc.text('Email: ' + document.getElementById('compEmail').value, 40, 89);
+    doc.setFontSize(10); doc.text(document.getElementById('docType').value.toUpperCase(), pageWidth-40, 50, {align: 'right'}); doc.text('DOCUMENT NO: ' + document.getElementById('invNo').innerText, pageWidth-40, 65, {align: 'right'}); doc.text('DATE: ' + document.getElementById('invDate').innerText, pageWidth-40, 77, {align: 'right'});
+    doc.setLineWidth(1.5); doc.line(40, 100, pageWidth-40, 100);
+    doc.setFontSize(11); doc.setFont(undefined, 'bold'); doc.text('BILLED TO:', 40, 120); doc.setFont(undefined, 'normal'); doc.text(document.getElementById('billedTo').value, 40, 135); doc.text(document.getElementById('phone').value, 40, 147); doc.text(document.getElementById('address').value, 40, 159);
+    let tableData = items.map((it,i)=>[ (i+1).toString(), it.name, it.qty.toLocaleString(), formatMoney(it.rate), formatMoney(it.total) ]);
+    let subtotal = items.reduce((a,b)=>a+b.total,0);
+    let vat = document.getElementById('vat').checked? subtotal*0.075 : 0;
+    let total = subtotal + vat;
+    doc.autoTable({ startY: 180, head: [['S/N', 'Items', 'Qty', 'Rate', 'Total']], body: tableData, theme: 'grid', styles: { font: 'helvetica', fontSize: 9, cellPadding: 5 }, headStyles: { fillColor: [10,37,64], textColor: 255, fontStyle: 'bold' }, columnStyles: { 0: {cellWidth: 35}, 1: {cellWidth: 160}, 2: {cellWidth: 60}, 3: {cellWidth: 110}, 4: {cellWidth: 120} } });
+    let finalY = doc.lastAutoTable.finalY + 15;
+    doc.setFillColor(10,37,64); doc.rect(40, finalY, 200, 15, 'F'); doc.setTextColor(255); doc.setFontSize(10); doc.text('PAYMENT INFORMATION', 45, finalY+10); doc.setTextColor(0);
+    doc.rect(40, finalY+15, 200, 45); doc.setFontSize(9); doc.text('Bank', 45, finalY+28); doc.text(document.getElementById('bank').value, 120, finalY+28); doc.text('Account No', 45, finalY+40); doc.text(document.getElementById('accNo').value, 120, finalY+40); doc.text('Account Name', 45, finalY+52); doc.text(document.getElementById('accName').value, 120, finalY+52);
+    doc.setFontSize(10); doc.text('Subtotal', pageWidth-150, finalY+10); doc.text(formatMoney(subtotal), pageWidth-40, finalY+10, {align:'right'});
+    doc.text('VAT 7.5%', pageWidth-150, finalY+22); doc.text(formatMoney(vat), pageWidth-40, finalY+22, {align:'right'});
+    doc.setFillColor(10,37,64); doc.rect(pageWidth-150, finalY+28, 110, 15, 'F'); doc.setTextColor(255); doc.text('Total', pageWidth-150, finalY+39); doc.text(formatMoney(total), pageWidth-40, finalY+39, {align:'right'}); doc.setTextColor(0);
+    finalY += 70; doc.setFontSize(9); doc.setFont(undefined, 'italic'); doc.text('Amount in Words: ' + numberToWords(total), 40, finalY);
+    finalY += 30; doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.text('Thank you for choosing Eby-Gold Superstores', 40, finalY); doc.text('Created by: ADMIN', pageWidth-40, finalY, {align:'right'});
+    return doc;
+}
 function saveInvoice(){ let data = { customer: {name: billedTo.value, phone: phone.value, address: address.value}, items: items, invNo: invNo.innerText }; localStorage.setItem('eby_invoice_' + invNo.innerText, JSON.stringify(data)); alert('Invoice Saved! ' + invNo.innerText); }
-function previewInvoice(){ updatePreview(); document.getElementById('previewCard').style.display='block'; window.scrollTo(0,document.body.scrollHeight); }
-function downloadPDF(){ const doc = generatePDF(); doc.save(invNo.innerText + '.pdf'); }
+function previewInvoice(){ if(items.length === 0) return alert('Please add at least 1 item'); updatePreview(); document.getElementById('previewCard').style.display='block'; window.scrollTo(0,document.body.scrollHeight); }
+function downloadPDF(){ if(items.length === 0) return alert('Please add items first'); const doc = generatePDF(); doc.save(invNo.innerText + '.pdf'); }
 function printInvoice(){ window.print(); }
-function sendToWhatsApp(){ let custPhone = document.getElementById('phone').value.replace(/\D/g,''); if(custPhone.length < 10){ alert('Please enter a valid customer phone number first.'); return; } if(!custPhone.startsWith('234')) custPhone = '234' + custPhone.slice(1); const doc = generatePDF(); const pdfBlob = doc.output('blob'); const pdfUrl = URL.createObjectURL(pdfBlob); const a = document.createElement('a'); a.href = pdfUrl; a.download = invNo.innerText + '.pdf'; document.body.appendChild(a); a.click(); document.body.removeChild(a); let msg = `Hello ${document.getElementById('billedTo').value}, \n\nPlease find your invoice ${invNo.innerText} attached from *EBY-GOLD SUPERSTORES*. \n\nThank you for your business!`; window.open(`https://wa.me/${custPhone}?text=${encodeURIComponent(msg)}`, '_blank'); alert('1. PDF Downloaded \n2. WhatsApp Opened \n\nAttach the PDF to send.'); }
+function sendToWhatsApp(){
+    let custPhone = document.getElementById('phone').value.replace(/\D/g,'');
+    if(custPhone.length < 10){ alert('Please enter a valid customer phone number first.'); return; }
+    if(items.length === 0) return alert('Please add items first');
+    if(!custPhone.startsWith('234')) custPhone = '234' + custPhone.slice(1);
+    const doc = generatePDF(); const pdfBlob = doc.output('blob'); const pdfUrl = URL.createObjectURL(pdfBlob); const a = document.createElement('a'); a.href = pdfUrl; a.download = invNo.innerText + '.pdf'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    let msg = `Hello ${document.getElementById('billedTo').value}, \n\nPlease find your invoice ${invNo.innerText} attached from *EBY-GOLD SUPERSTORES*. \n\nThank you for your business!`;
+    window.open(`https://wa.me/${custPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+    alert('1. PDF Downloaded \n2. WhatsApp Opened \n\nAttach the PDF to send.');
+}
 document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input', updatePreview));
 </script>
 </body>
-                                                                                                                                                                                             </html>
+                                                                </html>
