@@ -58,36 +58,33 @@ label { font-weight: 600; font-size: 13px; margin-bottom: 5px; display: block; }
         <h2 style="color:var(--primary); font-weight:900">EBY-GOLD SUPERSTORES</h2>
         <p>Enter any username to continue</p>
         <input type="text" id="username" placeholder="Enter Username">
-        <button class="btn" onclick="login()">Login</button>
+        <button class="btn" id="loginBtn">Login</button>
+        <p id="errorMsg" style="color:red; margin-top:10px; font-size:12px"></p>
     </div>
 </div>
 
 <div class="container" id="appScreen">
     <div class="header"><h1>Invoice Generator</h1><button class="btn" style="width:auto" onclick="logout()">Logout</button></div>
-
+    <!-- REST OF YOUR APP SAME AS BEFORE -->
     <div class="card"><h3>Company Information</h3><div class="grid">
         <div><label>Address</label><input id="compAddress" value="19, Jejelaye Street, Surulere, Lagos."></div>
         <div><label>Tel</label><input id="compTel" value="07058016395"></div>
         <div><label>Email</label><input id="compEmail" value="eberechukwukaosa5@gmail.com"></div>
     </div></div>
-
     <div class="card"><h3>Customer Details</h3><div class="grid">
         <div><label>Billed To</label><input id="billedTo" placeholder="Customer Name"></div>
         <div><label>Phone</label><input id="phone" placeholder="080xxxxxxxx"></div>
         <div style="grid-column:1/-1"><label>Address</label><input id="address" placeholder="Customer Address"></div>
     </div></div>
-
     <div class="card"><h3>Payment Information</h3><div class="grid">
         <div><label>Bank</label><input id="bank" value="UBA"></div>
         <div><label>Account No</label><input id="accNo" value="2189015307"></div>
         <div><label>Account Name</label><input id="accName" value="Ebere Favour Akabissa"></div>
     </div></div>
-
     <div class="card"><h3>Invoice Details</h3><div class="grid">
         <div><label>Document Type</label><select id="docType"><option>Sales Invoice</option><option>Receipt</option><option>Quotation</option></select></div>
         <div><label><input type="checkbox" id="vat"> Add 7.5% VAT</label></div>
     </div></div>
-
     <div class="card"><h3>Add Items</h3><div class="grid">
         <div><label>Item</label><input id="itemName" placeholder="Item Name"></div>
         <div><label>Qty</label><input id="qty" type="number" value="1"></div>
@@ -97,7 +94,6 @@ label { font-weight: 600; font-size: 13px; margin-bottom: 5px; display: block; }
     <div class="table-wrapper"><table class="items-table" id="itemsTable"><thead><tr><th>S/N</th><th>Items</th><th>Qty</th><th>Rate</th><th>Total</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
     <div class="btn-group no-print"><button class="btn" onclick="saveInvoice()">💾 Save</button><button class="btn btn-gold" onclick="previewInvoice()">👁️ Preview Invoice</button></div>
     </div>
-
     <div class="card" id="previewCard" style="display:none"><h3>Invoice Preview</h3>
         <div class="invoice" id="invoice"><img src="" class="watermark" id="watermarkImg">
             <div class="invoice-content">
@@ -128,54 +124,42 @@ label { font-weight: 600; font-size: 13px; margin-bottom: 5px; display: block; }
 
 <script>
 let items = []; 
+const errorMsg = document.getElementById('errorMsg');
 
-// FIX: Wait for jsPDF to load
-window.onload = function(){
-    if(typeof window.jspdf === 'undefined'){
-        alert("Error: PDF library failed to load. Please refresh.");
-        return;
-    }
-}
-
-function formatMoney(num){ return 'NGN ' + num.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
-function numberToWords(num) { const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine']; const tens = ['','Ten','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety']; const teens = ['Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen']; if(num === 0) return 'Zero'; let n = Math.floor(num); let str = ''; if(n >= 1000000) {str += ones[Math.floor(n/1000000)] + ' Million '; n %= 1000000;} if(n >= 1000) {str += ones[Math.floor(n/1000)] + ' Thousand '; n %= 1000;} if(n >= 100) {str += ones[Math.floor(n/100)] + ' Hundred '; n %= 100;} if(n >= 20) {str += tens[Math.floor(n/10)] + ' '; n %= 10;} if(n >= 10 && n < 20) {str += teens[n-10] + ' '; n = 0;} if(n > 0 && n < 10) {str += ones[n] + ';} let kobo = Math.round((num - Math.floor(num)) * 100); return str.trim() + ' Naira' + (kobo > 0? ' and ' + kobo + ' Kobo' : '') + ' Only'; }
+document.getElementById('loginBtn').addEventListener('click', login);
 
 function login(){ 
-    let user = document.getElementById('username').value.trim();
-    if(user === '') return alert('Please enter a username');
-    localStorage.setItem('eby_user', user);
-    document.getElementById('loginScreen').style.display='none';
-    document.getElementById('appScreen').style.display='block';
-    generateInvNo(); 
-    loadLogo();
+    try{
+        errorMsg.innerText = '';
+        let user = document.getElementById('username').value.trim();
+        if(user === ''){ errorMsg.innerText = 'Please enter a username'; return; }
+        
+        localStorage.setItem('eby_user', user);
+        document.getElementById('loginScreen').style.display='none';
+        document.getElementById('appScreen').style.display='block';
+        generateInvNo(); 
+        loadLogo();
+    }catch(e){
+        errorMsg.innerText = 'Error: ' + e.message;
+    }
 }
 function logout(){ localStorage.removeItem('eby_user'); location.reload(); }
 
-// Auto login if user exists
 if(localStorage.getItem('eby_user')){ 
     document.getElementById('username').value = localStorage.getItem('eby_user'); 
     login(); 
 }
 
-function loadLogo(){ let logo = localStorage.getItem('eby_logo'); if(logo){ document.getElementById('loginLogo').src = logo; document.getElementById('logoPreview').src = logo; document.getElementById('logoPreview').style.display='block'; document.getElementById('logoText').style.display='none'; document.getElementById('watermarkImg').src = logo; } }
+function loadLogo(){ let logo = localStorage.getItem('eby_logo'); if(logo){ document.getElementById('loginLogo').src = logo; document.getElementById('logoPreview').src = logo; document.getElementById('logoPreview').style.display='block'; document.getElementById('logoText').style.display='none'; document.getElementById('watermarkImg').src = logo; }
 function uploadLogo(){ let input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { let reader = new FileReader(); reader.onload = () => { let src = reader.result; localStorage.setItem('eby_logo', src); loadLogo(); } reader.readAsDataURL(e.target.files[0]); } input.click(); }
 function generateInvNo(){ let no = '#EGS-INV-' + Math.floor(100000 + Math.random() * 900000); document.getElementById('invNo').innerText = no; document.getElementById('invDate').innerText = new Date().toLocaleDateString('en-GB'); }
+function formatMoney(num){ return 'NGN ' + num.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+function numberToWords(num) { const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine']; const tens = ['','Ten','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety']; const teens = ['Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen']; if(num === 0) return 'Zero'; let n = Math.floor(num); let str = ''; if(n >= 1000000) {str += ones[Math.floor(n/1000000)] + ' Million '; n %= 1000000;} if(n >= 1000) {str += ones[Math.floor(n/1000)] + ' Thousand '; n %= 1000;} if(n >= 100) {str += ones[Math.floor(n/100)] + ' Hundred '; n %= 100;} if(n >= 20) {str += tens[Math.floor(n/10)] + ' '; n %= 10;} if(n >= 10 && n < 20) {str += teens[n-10] + ' '; n = 0;} if(n > 0 && n < 10) {str += ones[n] + ';} let kobo = Math.round((num - Math.floor(num)) * 100); return str.trim() + ' Naira' + (kobo > 0? ' and ' + kobo + ' Kobo' : '') + ' Only'; }
 function addItem(){ let name = document.getElementById('itemName').value; let qty = parseFloat(document.getElementById('qty').value); let rate = parseFloat(document.getElementById('rate').value); if(!name || qty <= 0 || rate < 0) return alert('Fill item details'); items.push({name, qty, rate, total: qty*rate}); renderTable(); document.getElementById('itemName').value=''; document.getElementById('qty').value=1; document.getElementById('rate').value=0; }
 function deleteItem(i){ items.splice(i,1); renderTable(); }
 function renderTable(){ let tbody = document.querySelector('#itemsTable tbody'); tbody.innerHTML = ''; items.forEach((it,i)=>{ tbody.innerHTML += `<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td>${formatMoney(it.rate)}</td><td>${formatMoney(it.total)}</td><td class="no-print"><button class="action-btn" onclick="deleteItem(${i})">X</button></td></tr>` }); updatePreview(); }
 function updatePreview(){ document.getElementById('previewCompAddress').innerText = document.getElementById('compAddress').value; document.getElementById('previewCompTel').innerText = document.getElementById('compTel').value; document.getElementById('previewCompEmail').innerText = document.getElementById('compEmail').value; document.getElementById('previewName').innerText = document.getElementById('billedTo').value; document.getElementById('previewPhone').innerText = document.getElementById('phone').value; document.getElementById('previewAddress').innerText = document.getElementById('address').value; document.getElementById('previewBank').innerText = document.getElementById('bank').value; document.getElementById('previewAccNo').innerText = document.getElementById('accNo').value; document.getElementById('previewAccName').innerText = document.getElementById('accName').value; let tableHTML = '<table class="items-table"><thead><tr><th>S/N</th><th>Items</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead><tbody>'; items.forEach((it,i)=>{ tableHTML += `<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td>${formatMoney(it.rate)}</td><td>${formatMoney(it.total)}</td></tr>` }); tableHTML += '</tbody></table>'; document.getElementById('invoiceTable').innerHTML = `<div class="table-wrapper">${tableHTML}</div>`; let subtotal = items.reduce((a,b)=>a+b.total,0); let vat = document.getElementById('vat').checked? subtotal*0.075 : 0; let total = subtotal + vat; document.getElementById('totals').innerHTML = `<table style="border:1px solid var(--primary); font-size:11px"><tr><td style="padding:8px"><b>Subtotal</b></td><td style="padding:8px">${formatMoney(subtotal)}</td></tr><tr><td style="padding:8px; background:var(--primary); color:white"><b>Total</b></td><td style="padding:8px; background:var(--primary); color:white"><b>${formatMoney(total)}</b></td></tr></table>`; document.getElementById('amountWords').innerText = 'Amount in Words: ' + numberToWords(total); }
-
-function generatePDF(){ 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p','pt','a4'); 
-    const pageWidth = doc.internal.pageSize.getWidth(); 
-    doc.setFont('helvetica'); doc.setFontSize(18); doc.setFont(undefined, 'bold'); doc.text('EBY-GOLD SUPERSTORES', 40, 50); 
-    
-    let logo = localStorage.getItem('eby_logo');
-    if(logo){ doc.addImage(logo, 'JPEG', 450, 30, 90, 90); } // Logo in PDF
-
-    doc.setFontSize(9); doc.text(document.getElementById('compAddress').value, 40, 65); doc.text('Tel: ' + document.getElementById('compTel').value, 40, 77); doc.text('Email: ' + document.getElementById('compEmail').value, 40, 89); doc.setFontSize(10); doc.text(document.getElementById('docType').value.toUpperCase(), pageWidth-40, 50, {align: 'right'}); doc.text('DOCUMENT NO: ' + document.getElementById('invNo').innerText, pageWidth-40, 65, {align: 'right'}); doc.text('DATE: ' + document.getElementById('invDate').innerText, pageWidth-40, 77, {align: 'right'}); doc.setLineWidth(1.5); doc.line(40, 100, pageWidth-40, 100); doc.setFontSize(11); doc.setFont(undefined, 'bold'); doc.text('BILLED TO:', 40, 120); doc.setFont(undefined, 'normal'); doc.text(document.getElementById('billedTo').value, 40, 135); doc.text(document.getElementById('phone').value, 40, 147); doc.text(document.getElementById('address').value, 40, 159); let tableData = items.map((it,i)=>[ (i+1).toString(), it.name, it.qty.toLocaleString(), formatMoney(it.rate), formatMoney(it.total) ]); let subtotal = items.reduce((a,b)=>a+b.total,0); let vat = document.getElementById('vat').checked? subtotal*0.075 : 0; let total = subtotal + vat; doc.autoTable({ startY: 180, head: [['S/N', 'Items', 'Qty', 'Rate', 'Total']], body: tableData, theme: 'grid', styles: { font: 'helvetica', fontSize: 9, cellPadding: 5 }, headStyles: { fillColor: [10,37,64], textColor: 255, fontStyle: 'bold' }, columnStyles: { 0: {cellWidth: 35}, 1: {cellWidth: 160}, 2: {cellWidth: 60}, 3: {cellWidth: 110}, 4: {cellWidth: 120} } }); let finalY = doc.lastAutoTable.finalY + 15; doc.setFillColor(10,37,64); doc.rect(40, finalY, 200, 15, 'F'); doc.setTextColor(255); doc.setFontSize(10); doc.text('PAYMENT INFORMATION', 45, finalY+10); doc.setTextColor(0); doc.rect(40, finalY+15, 200, 45); doc.setFontSize(9); doc.text('Bank', 45, finalY+28); doc.text(document.getElementById('bank').value, 120, finalY+28); doc.text('Account No', 45, finalY+40); doc.text(document.getElementById('accNo').value, 120, finalY+40); doc.text('Account Name', 45, finalY+52); doc.text(document.getElementById('accName').value, 120, finalY+52); doc.setFontSize(10); doc.text('Subtotal', pageWidth-150, finalY+10); doc.text(formatMoney(subtotal), pageWidth-40, finalY+10, {align:'right'}); doc.setFillColor(10,37,64); doc.rect(pageWidth-150, finalY+15, 110, 15, 'F'); doc.setTextColor(255); doc.text('Total', pageWidth-150, finalY+26); doc.text(formatMoney(total), pageWidth-40, finalY+26, {align:'right'}); doc.setTextColor(0); finalY += 70; doc.setFontSize(9); doc.setFont(undefined, 'italic'); doc.text('Amount in Words: ' + numberToWords(total), 40, finalY); finalY += 30; doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.text('Thank you for choosing Eby-Gold Superstores', 40, finalY); doc.text('Created by: ADMIN', pageWidth-40, finalY, {align:'right'}); return doc; 
-}
+function generatePDF(){ const { jsPDF } = window.jspdf; const doc = new jsPDF('p','pt','a4'); const pageWidth = doc.internal.pageSize.getWidth(); doc.setFont('helvetica'); doc.setFontSize(18); doc.setFont(undefined, 'bold'); doc.text('EBY-GOLD SUPERSTORES', 40, 50); let logo = localStorage.getItem('eby_logo'); if(logo){ doc.addImage(logo, 'JPEG', 450, 30, 90, 90); } doc.setFontSize(9); doc.text(document.getElementById('compAddress').value, 40, 65); doc.text('Tel: ' + document.getElementById('compTel').value, 40, 77); doc.text('Email: ' + document.getElementById('compEmail').value, 40, 89); doc.setFontSize(10); doc.text(document.getElementById('docType').value.toUpperCase(), pageWidth-40, 50, {align: 'right'}); doc.text('DOCUMENT NO: ' + document.getElementById('invNo').innerText, pageWidth-40, 65, {align: 'right'}); doc.text('DATE: ' + document.getElementById('invDate').innerText, pageWidth-40, 77, {align: 'right'}); doc.setLineWidth(1.5); doc.line(40, 100, pageWidth-40, 100); doc.setFontSize(11); doc.setFont(undefined, 'bold'); doc.text('BILLED TO:', 40, 120); doc.setFont(undefined, 'normal'); doc.text(document.getElementById('billedTo').value, 40, 135); doc.text(document.getElementById('phone').value, 40, 147); doc.text(document.getElementById('address').value, 40, 159); let tableData = items.map((it,i)=>[ (i+1).toString(), it.name, it.qty.toLocaleString(), formatMoney(it.rate), formatMoney(it.total) ]); let subtotal = items.reduce((a,b)=>a+b.total,0); let vat = document.getElementById('vat').checked? subtotal*0.075 : 0; let total = subtotal + vat; doc.autoTable({ startY: 180, head: [['S/N', 'Items', 'Qty', 'Rate', 'Total']], body: tableData, theme: 'grid', styles: { font: 'helvetica', fontSize: 9, cellPadding: 5 }, headStyles: { fillColor: [10,37,64], textColor: 255, fontStyle: 'bold' }, columnStyles: { 0: {cellWidth: 35}, 1: {cellWidth: 160}, 2: {cellWidth: 60}, 3: {cellWidth: 110}, 4: {cellWidth: 120} } }); let finalY = doc.lastAutoTable.finalY + 15; doc.setFillColor(10,37,64); doc.rect(40, finalY, 200, 15, 'F'); doc.setTextColor(255); doc.setFontSize(10); doc.text('PAYMENT INFORMATION', 45, finalY+10); doc.setTextColor(0); doc.rect(40, finalY+15, 200, 45); doc.setFontSize(9); doc.text('Bank', 45, finalY+28); doc.text(document.getElementById('bank').value, 120, finalY+28); doc.text('Account No', 45, finalY+40); doc.text(document.getElementById('accNo').value, 120, finalY+40); doc.text('Account Name', 45, finalY+52); doc.text(document.getElementById('accName').value, 120, finalY+52); doc.setFontSize(10); doc.text('Subtotal', pageWidth-150, finalY+10); doc.text(formatMoney(subtotal), pageWidth-40, finalY+10, {align:'right'}); doc.setFillColor(10,37,64); doc.rect(pageWidth-150, finalY+15, 110, 15, 'F'); doc.setTextColor(255); doc.text('Total', pageWidth-150, finalY+26); doc.text(formatMoney(total), pageWidth-40, finalY+26, {align:'right'}); doc.setTextColor(0); finalY += 70; doc.setFontSize(9); doc.setFont(undefined, 'italic'); doc.text('Amount in Words: ' + numberToWords(total), 40, finalY); finalY += 30; doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.text('Thank you for choosing Eby-Gold Superstores', 40, finalY); doc.text('Created by: ADMIN', pageWidth-40, finalY, {align:'right'}); return doc; }
 function saveInvoice(){ let data = { customer: {name: billedTo.value, phone: phone.value, address: address.value}, items: items, invNo: invNo.innerText }; localStorage.setItem('eby_invoice_' + invNo.innerText, JSON.stringify(data)); alert('Invoice Saved! ' + invNo.innerText); }
 function previewInvoice(){ updatePreview(); document.getElementById('previewCard').style.display='block'; }
 function downloadPDF(){ const doc = generatePDF(); doc.save(invNo.innerText + '.pdf'); }
@@ -184,4 +168,4 @@ function sendToWhatsApp(){ let custPhone = document.getElementById('phone').valu
 document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input', updatePreview));
 </script>
 </body>
-            </html>
+                                                                                                                      </html>
